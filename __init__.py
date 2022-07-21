@@ -1,4 +1,3 @@
-
 import numpy
 from Classifiers import *
 from statistics import *
@@ -62,6 +61,7 @@ def k_fold_computation(folds, folds_label, N,K = 5, preprocessing = act_preproc)
     print(f"Preprocessing... {preprocessing}")
     for i in range(K):
         DTR, LTR, DTE, LTE = train_and_eval(folds, folds_label)
+        print(LTR.sum(), LTE.sum())
         """
         PREPROCESSING
         """
@@ -76,18 +76,17 @@ def k_fold_computation(folds, folds_label, N,K = 5, preprocessing = act_preproc)
             DTR, DTE = pp.preprocess_PCA(DTR, DTE, m = pca_dim)
         if preprocessing == "GAUSSIANIZATION":
             print(DTR.sum())
-            DTR, DTE = pp.load_preprocess_gaussianize(i)
+            DTR, DTE, _ = pp.load_preprocess_gaussianize(i)
             print(DTR.sum())
             
             
         """
         TRAINING
         """
-        accuracy, _, _, fold_score,file_save = build_model(DTR, LTR, DTE, LTE, model= act_model)
+        fold_score,file_save = build_model(DTR, LTR, DTE, LTE, model= act_model)
         """
         TESTING
         """
-        guessed += accuracy * (Nf)
         scores[i*Nf:i*(Nf) + (Nf)] = fold_score
         folds, folds_label = next_kfold_iter(folds, folds_label)
     return guessed, scores, file_save
@@ -105,4 +104,4 @@ def k_fold_approach(K = 5):
     #act_dcf = compute_NDCF(scores, shuff_labels, effective_prior, 1 ,1)
     
 
-DTR, LTR, DTE, LTE = load_data
+k_fold_approach()

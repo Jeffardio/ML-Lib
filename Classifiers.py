@@ -1,7 +1,6 @@
-from ctypes import c_char
 from application_parameters import *
 from probability import *
-from statistics import plot_bayes_error_plot, compute_accuracy, compute_minimum_NDCF
+from validation import plot_bayes_error_plot, compute_accuracy, compute_minimum_NDCF
 import numpy
 
 

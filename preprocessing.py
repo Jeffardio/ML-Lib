@@ -66,23 +66,27 @@ def load_preprocess_gaussianize(int):
 
 def preprocess_gaussianization(DTR: numpy.ndarray, DTE: numpy.ndarray, i):
     gauss_DTR = numpy.zeros(DTR.shape)
+    
+   
     for f in range(DTR.shape[0]):
         gauss_DTR[f, :] = scipy.stats.norm.ppf(scipy.stats.rankdata(DTR[f, :], method="min")/(DTR.shape[1] + 2))
     gauss_DTE = numpy.zeros(DTE.shape)
+    
+    
     for f in range(DTR.shape[0]):
         for idx,x in enumerate(DTE[f,:]):
             rank = 0
             for x_i in DTR[f,:]:
                 if(x_i < x):
                     rank += 1
-            rank = (rank + 1) /(DTR.shape[1] + 2)
-            gauss_DTE[f][idx] = scipy.stats.norm.ppf(rank)
+            uniform = (rank + 1) /(DTR.shape[1] + 2)
+            gauss_DTE[f][idx] = scipy.stats.norm.ppf(uniform)
     filename_DTR = "gaussianized/gauss_DTR" + str(i) + ".npy"
     filename_DTE = "gaussianized/gauss_DTE" + str(i) + ".npy"
     numpy.save(filename_DTR, gauss_DTR)
     numpy.save(filename_DTE, gauss_DTE)
     return gauss_DTR, gauss_DTE
-
+    
 def preprocess_Z_score(DTR, DTE):
     print("Z-Scoring...")
     mu = compute_mean(DTR)

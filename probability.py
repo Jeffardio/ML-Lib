@@ -157,8 +157,7 @@ def SVM_dual_obj_wrap(H_hat):
     def SVM_dual_obj(alpha: numpy.ndarray):
         alpha = vcol(alpha)
         gradient = vrow(H_hat.dot(alpha) - numpy.ones((alpha.shape[0], 1)))
-        obj_L = 0.5 * alpha.T.dot(H_hat).dot(alpha) - \
-            alpha.T @ numpy.ones(alpha.shape[0])
+        obj_L = 0.5 * alpha.T.dot(H_hat).dot(alpha) - alpha.T @ numpy.ones(alpha.shape[0])
         return obj_L, gradient
     return SVM_dual_obj
 

@@ -106,14 +106,14 @@ def plot_PC_heatmap(D: numpy.ndarray):
 
 
 def plot_hist(D: numpy.ndarray, L: numpy.ndarray):
-    for i in range(12):
+    for i in range(D.shape[0]):
         plt.figure()
         plt.xlabel(features_name[i])
         for j in range(n_classes):
             plt.hist(D[:, L == j][i, :], bins = 70, density = True, alpha = 0.4, label=classes[j], linewidth = 1.0, edgecolor='black' )
         plt.legend()
         plt.tight_layout()
-        plt.savefig('gauss_features/hist_'+ features_name[i]+'.png')     
+        #plt.savefig('gauss_features/hist_'+ features_name[i]+'.png')     
     plt.show()
 
 def print_statistics(accuracy: float, act_dcf: float, min_dcf: float, t_star: float):
@@ -179,7 +179,7 @@ def K_fold_split(D, L, K, seed = 27):
     folds = []
     folds_label = []
     for i in range(K):
-        folds.append(D[chunks[i]])
+        folds.append(D[:,chunks[i]])
         folds_label.append(L[chunks[i]])
     return folds, folds_label
 
