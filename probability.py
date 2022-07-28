@@ -171,7 +171,7 @@ def compute_SVM_parameters(DTR, LTR, K, C):
     (alpha, f, _d) = scipy.optimize.fmin_l_bfgs_b(
         dual_obj, numpy.zeros(DTR.shape[1]), 
         bounds=compute_weight_C(C, LTR), 
-        factr=10.0)
+        factr=100.0)
     w_opt = numpy.dot(D_hat, vcol(alpha) * vcol(Z))
     return w_opt
 
@@ -182,7 +182,7 @@ def compute_PolSVM_parameters(H_hat: numpy.ndarray, DTR: numpy.ndarray, LTR, C: 
         dual_obj, 
         numpy.zeros(DTR.shape[1]),  
         bounds = compute_weight_C(C, LTR), 
-        factr=1.0)
+        factr=100.0)
     return alpha
 
 
@@ -193,7 +193,7 @@ def compute_PolSVM_score_matrix(DTR, DTE, Z, alpha_opt, K, c, d):
 def compute_RBFSVM_parameters(H_hat: numpy.ndarray, DTR: numpy.ndarray, LTR, C: numpy.ndarray):
     dual_obj = SVM_dual_obj_wrap(H_hat)
     (alpha, f, _d) = scipy.optimize.fmin_l_bfgs_b(dual_obj, numpy.zeros(
-        DTR.shape[1]),  bounds=compute_weight_C(C, LTR), factr=1.0)
+        DTR.shape[1]),  bounds=compute_weight_C(C, LTR), factr=100.0)
     return alpha
 
 

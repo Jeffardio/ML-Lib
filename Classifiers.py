@@ -42,48 +42,49 @@ def TiedMultivariateGaussian(DTR: numpy.ndarray, LTR:numpy.ndarray, DTE: numpy.n
 def LogisticRegression(DTR: numpy.ndarray, LTR:numpy.ndarray, DTE: numpy.ndarray, _lambda, verbose = False):
     if verbose:
         print("--------Logistic Regression Model--------")
+        print(f"Lambda =  {_lambda}")
     obj = LR_obj_wrap(DTR,LTR,_lambda)
-    (x,f,d) = scipy.optimize.fmin_l_bfgs_b(obj,numpy.zeros((DTR.shape[0]+1)), approx_grad = True, factr=100.0)
+    (x,f,d) = scipy.optimize.fmin_l_bfgs_b(obj,numpy.zeros((DTR.shape[0]+1)), approx_grad = True, factr=1.0)
     w_opt =  vcol(x[0:-1])
     b_opt = x[-1]
     S = compute_LR_score_matrix(DTE, w_opt, b_opt)
-    return S, f"LR_lambda_{_lambda:.3f}"
+    return S, f"LR_{prior_probability[1]}_lambda_{_lambda}"
 
 def QuadraticLogisticRegression(DTR: numpy.ndarray, LTR: numpy.ndarray, DTE: numpy.ndarray, _lambda: float, verbose = False):
     if verbose:
         print("--------Quadratic Logistic Regression Model--------")
-        print(f"Lambda =  {_lambda:.3f}")
+        print(f"Lambda =  {_lambda}")
     DTR, DTE = polynomial_trasformation(DTR, DTE)
-    return LogisticRegression(DTR, LTR, DTE, _lambda), f"QLR_lambda_{_lambda:.3f}"
+    return LogisticRegression(DTR, LTR, DTE, _lambda), f"QLR_{prior_probability[1]}_lambda_{_lambda}"
 
 
 
 
 
-def SupportVectorMachine(DTR, LTR, DTE, K, C, verbose = False):
+def SupportVectorMachine(DTR, LTR, DTE, K, C, verbose = True):
     if verbose:
         print("--------Support Vector Machine Model--------")
-        print(f"K = {K}, C = {C:.3f}")
+        print(f"K = {K}, C = {C}")
     w_opt = compute_SVM_parameters(DTR,LTR,K, C)
     EXTDTE = numpy.vstack([DTE, numpy.ones(DTE.shape[1]) * K])
     S = compute_LR_score_matrix(EXTDTE, w_opt, 0)
-    return S, f"SVM_K_{K}_C_{C:.3f}"
+    return S, f"SVM_{prior_probability[1]}_K_{K}_C_{C}"
 
-def PolynomialSupportVectorMachine(DTR, LTR, DTE, K, C, d, c, verbose = False):
+def PolynomialSupportVectorMachine(DTR, LTR, DTE, K, C, d, c, verbose = True):
     if verbose:
         print("--------Polynomial Support Vector Machine Model--------")
-        print(f"K = {K}, C = {C:.3f}, d = {d}, c = {c}")
+        print(f"K = {K}, C = {C}, d = {d}, c = {c}")
     Z, _, _ = z_vector(LTR)
     KDTR = (DTR.T.dot(DTR) + c) ** d + K**2
     H_hat = vcol(Z) * vrow(Z) * KDTR
     alpha_opt = compute_PolSVM_parameters(H_hat, DTR, LTR, C)
     S = compute_PolSVM_score_matrix(DTR, DTE, Z, alpha_opt, K, c, d)
-    return S, f"PSVM_K_{K}_C_{C:.3f}_d_{d}_c_{c}"
+    return S, f"PSVM_{prior_probability[1]}_K_{K}_C_{C}_d_{d}_c_{c}"
 
-def RadialSupportVectorMachine(DTR, LTR, DTE, K, C, gamma, verbose = False):
+def RadialSupportVectorMachine(DTR, LTR, DTE, K, C, gamma, verbose = True):
     if verbose:
         print("--------RBF Support Vector Machine Model--------")
-        print(f"K = {K}, C = {C:.3f}, gamma = {gamma}")
+        print(f"K = {K}, C = {C}, gamma = {gamma}")
     print("gamma = ",gamma)
     Z,_ ,_ = z_vector(LTR)
     KDTR = numpy.zeros((DTR.shape[1],DTR.shape[1]))
@@ -93,7 +94,7 @@ def RadialSupportVectorMachine(DTR, LTR, DTE, K, C, gamma, verbose = False):
     H_hat = vcol(Z) * vrow(Z) * KDTR
     alpha_opt = compute_RBFSVM_parameters(H_hat, DTR, LTR, C)
     S = compute_RBFSVM_score_matrix(DTR, DTE, Z, alpha_opt, K, gamma)
-    return S, f"RSVM_K_{K}_C_{C:.3f}_gamma_{gamma}"
+    return S, f"RSVM_{prior_probability[1]}__K_{K}_C_{C}_gamma_{gamma}"
 
 
 def GaussianMixtureModel(DTR, LTR, DTE, iterations = 5, alpha = 0.1, psi = 0.01, mod="Normal", verbose = False):
