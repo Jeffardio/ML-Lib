@@ -21,13 +21,13 @@ def compute_ll(X: numpy.ndarray, mu: numpy.ndarray, C: numpy.ndarray) -> float:
     return logpdf_array.sum()
 
 
-def compute_LLR(SJoint: numpy.ndarray):
-    return SJoint[1] - SJoint[0]
+def compute_score(SPost: numpy.ndarray):
+    return SPost[1] - SPost[0]
 
 
 def compute_class_posterior(SJoint: numpy.ndarray):
     for i in range(n_classes):
-        SJoint[i] += eff_prior[i]
+        SJoint[i] += numpy.log(eff_prior[i])
     return SJoint - vrow(scipy.special.logsumexp(SJoint, axis=0))
 
 
@@ -39,12 +39,13 @@ def compute_predicted_class(SPost: numpy.ndarray):
 GAUSSIAN MODEL
 """
 
-def compute_MG_score_matrix(D: numpy.ndarray, mu_cn: numpy.ndarray, C_cn: numpy.ndarray):
+def compute_MG_SPost_matrix(D: numpy.ndarray, mu_cn: numpy.ndarray, C_cn: numpy.ndarray):
     SJoint = numpy.zeros((n_classes, D.shape[1]))
     n_F = D.shape[0]
     for i in range(n_classes):
         SJoint[i:i+1, :] = logpdf_GAU_ND(D, mu_cn[:, i:i+1], C_cn[:, i*n_F: i*n_F + n_F])
-    return SJoint
+    SPost = compute_class_posterior(SJoint)
+    return SPost
 
 def compute_MG_parameters(D: numpy.ndarray, L: numpy.ndarray):
     n_F = D.shape[0]
@@ -53,6 +54,7 @@ def compute_MG_parameters(D: numpy.ndarray, L: numpy.ndarray):
     for i in range(n_classes):
         mu_cn[:, i:i+1] = compute_mean(D[:, L == i])
         C_cn[:, i*n_F:i*n_F + n_F] = compute_covariance(D[:, L == i] - mu_cn[:, i:i+1])
+    
     return mu_cn, C_cn
 
 def compute_TMG_parameters(D: numpy.ndarray, L:numpy.ndarray):
@@ -93,11 +95,11 @@ LOGISTIC REGRESSION
 """
 
 
-def compute_LR_score_matrix(D: numpy.ndarray, W: numpy.ndarray, B: numpy.ndarray):
-    return numpy.dot(W.T, D) + B
+def compute_LR_score_matrix(D: numpy.ndarray, W: numpy.ndarray, b: numpy.ndarray):
+    return numpy.dot(W.T, D) + b
 
 
-def LR_obj_wrap(DTR: numpy.ndarray, LTR: numpy.ndarray, _lambda: float):
+def LR_obj_wrap(DTR: numpy.ndarray, LTR: numpy.ndarray, _lambda: float, prior: list):
     _, Z_f, Z_t = z_vector(LTR)
 
     def logreg_obj(V):
@@ -105,12 +107,11 @@ def LR_obj_wrap(DTR: numpy.ndarray, LTR: numpy.ndarray, _lambda: float):
         b = V[-1]
         n_T = DTR[:, LTR == 1].shape[1]
         n_F = DTR[:, LTR == 0].shape[1]
+        
         S_true = compute_LR_score_matrix(DTR[:, LTR == 1], w, b)
         S_false = compute_LR_score_matrix(DTR[:, LTR == 0], w, b)
-        w_true_costs = (prior_probability[1]/n_T) * \
-            numpy.logaddexp(0, -Z_t * S_true).sum()
-        w_false_costs = (prior_probability[0]/n_F) * \
-            numpy.logaddexp(0, -Z_f * S_false).sum()
+        w_true_costs = (prior[1]/n_T) * numpy.logaddexp(0, -Z_t * S_true).sum()
+        w_false_costs = (prior[0]/n_F) * numpy.logaddexp(0, -Z_f * S_false).sum()
         return _lambda/2 * pow(numpy.linalg.norm(w), 2) + w_true_costs + w_false_costs
     return logreg_obj
 
@@ -118,6 +119,7 @@ def LR_obj_wrap(DTR: numpy.ndarray, LTR: numpy.ndarray, _lambda: float):
 def polynomial_trasformation(DTR: numpy.ndarray, DTE: numpy.ndarray):
     n_T = DTR.shape[1]
     n_E = DTE.shape[1]
+    n_F = DTR.shape[0]
     n_F = n_F**2 + n_F
     quad_DTR = numpy.zeros((n_F, n_T))
     quad_DTE = numpy.zeros((n_F, n_E))
@@ -145,11 +147,11 @@ SUPPORT VECTOR MACHINE
 """
 
 
-def compute_weight_C(C, LTR):
+def compute_weight_C(C, LTR, prior):
     bounds = numpy.zeros((LTR.shape[0]))
     pi_t_emp = (LTR == 1).sum() / LTR.shape[0]
-    bounds[LTR == 1] = C * prior_probability[1] / pi_t_emp
-    bounds[LTR == 0] = C * prior_probability[0] / (1 - pi_t_emp)
+    bounds[LTR == 1] = C * prior[1] / pi_t_emp
+    bounds[LTR == 0] = C * prior[0] / (1 - pi_t_emp)
     return list(zip(numpy.zeros(LTR.shape[0]), bounds))
 
 
@@ -162,7 +164,7 @@ def SVM_dual_obj_wrap(H_hat):
     return SVM_dual_obj
 
 
-def compute_SVM_parameters(DTR, LTR, K, C):
+def compute_SVM_parameters(DTR, LTR, K, C, prior):
     D_hat = numpy.vstack([DTR, numpy.ones(DTR.shape[1]) * K])
     G_hat = D_hat.T.dot(D_hat)
     Z, _, _ = z_vector(LTR)
@@ -170,19 +172,19 @@ def compute_SVM_parameters(DTR, LTR, K, C):
     dual_obj = SVM_dual_obj_wrap(H_hat)
     (alpha, f, _d) = scipy.optimize.fmin_l_bfgs_b(
         dual_obj, numpy.zeros(DTR.shape[1]), 
-        bounds=compute_weight_C(C, LTR), 
-        factr=100.0)
+        bounds=compute_weight_C(C, LTR, prior), 
+        factr=1.0)
     w_opt = numpy.dot(D_hat, vcol(alpha) * vcol(Z))
     return w_opt
 
 
-def compute_PolSVM_parameters(H_hat: numpy.ndarray, DTR: numpy.ndarray, LTR, C: numpy.ndarray):
+def compute_PolSVM_parameters(H_hat: numpy.ndarray, DTR: numpy.ndarray, LTR, C: numpy.ndarray, prior):
     dual_obj = SVM_dual_obj_wrap(H_hat)
     (alpha, f, _d) = scipy.optimize.fmin_l_bfgs_b(
         dual_obj, 
         numpy.zeros(DTR.shape[1]),  
-        bounds = compute_weight_C(C, LTR), 
-        factr=100.0)
+        bounds = compute_weight_C(C, LTR, prior), 
+        factr=1.0)
     return alpha
 
 
@@ -190,10 +192,10 @@ def compute_PolSVM_score_matrix(DTR, DTE, Z, alpha_opt, K, c, d):
     return (vcol(alpha_opt) * vcol(Z) * ((DTR.T.dot(DTE) + c) ** d + K**2)).sum(0)
 
 
-def compute_RBFSVM_parameters(H_hat: numpy.ndarray, DTR: numpy.ndarray, LTR, C: numpy.ndarray):
+def compute_RBFSVM_parameters(H_hat: numpy.ndarray, DTR: numpy.ndarray, LTR, C: numpy.ndarray, prior):
     dual_obj = SVM_dual_obj_wrap(H_hat)
     (alpha, f, _d) = scipy.optimize.fmin_l_bfgs_b(dual_obj, numpy.zeros(
-        DTR.shape[1]),  bounds=compute_weight_C(C, LTR), factr=100.0)
+        DTR.shape[1]),  bounds=compute_weight_C(C, LTR, prior), factr=1.0)
     return alpha
 
 
@@ -338,10 +340,11 @@ def compute_GMM_parameters(DTR, LTR, iterations, alpha, psi, mod):
     return GMM
 
 
-def compute_GMM_score_matrix(DTE, GMM):
+def compute_GMM_SPost_matrix(DTE, GMM):
     S = numpy.zeros((n_classes, DTE.shape[1]))
     for idx, gmm in enumerate(GMM):
-        S[idx] = logpdf_GMM(DTE, gmm)
+        S[idx] = logpdf_GMM(DTE, gmm) + numpy.log(eff_prior[idx])
+    S = S - vrow(scipy.special.scipy.special.logsumexp(S, axis=0))
     return S
 
 

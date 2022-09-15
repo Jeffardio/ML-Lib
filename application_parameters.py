@@ -1,5 +1,7 @@
 """
 APPLICATION INFORMATION
+a not very useful file actually
+
 """
 n_classes = 2
 prior_probability = [0.5, 0.5]
@@ -7,6 +9,8 @@ C_fn = 1
 C_fp = 1
 effective_prior = 0.5
 eff_prior = [1 - effective_prior, effective_prior]
+
+
 features_name = {
     0: "Feature 1",
     1: "Feature 2",
@@ -23,9 +27,5 @@ features_name = {
 }
 
 
-def set_eff_prior(prior):
-    eff_prior[0] = 1- prior 
-    eff_prior[1] = prior
 
-def print_application_parameters():
-    print(f"Effective prior: {effective_prior}")
+

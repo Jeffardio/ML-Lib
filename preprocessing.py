@@ -12,15 +12,18 @@ def compute_LDA_directions(D: numpy.ndarray, L: numpy.ndarray, mu: numpy.ndarray
     P = U[:, ::-1][:, 0:m]
     return P
 
-def compute_LDA_projection(D: numpy.ndarray, L: numpy.ndarray, mu: numpy.ndarray, m: int) -> numpy.ndarray:
-    P = compute_LDA_directions(D, L, mu, m)
-    return numpy.dot(P.T, D)
+def compute_LDA_projection(DTR: numpy.ndarray, LTR: numpy.ndarray, DTE: numpy.ndarray,  mu: numpy.ndarray, m: int) -> numpy.ndarray:
+    P = compute_LDA_directions(DTR, LTR, mu, m)
+    return numpy.dot(P.T, DTR), numpy.dot(P.T, DTE)
 
-
+def preprocess_LDA(DTR, LTR, DTE, m):
+    mu = compute_classes_mean(DTR, LTR)
+    train, eval = compute_LDA_projection(DTR, LTR, DTE, mu, m)
+    return train, eval, f"LDA_m_{m}"
 
 
 def preprocess_PCA(DTR: numpy.ndarray, DTE: numpy.ndarray, m: int):
-    print(f"PCA m = {m}...")
+    #WE ASSUME THAT DTR and DTE ARE CENTERED AROUND THE DTR MEAN
     C = compute_covariance(DTR)
     P = compute_PCA_directions(C, m)
     return compute_PCA_projection(DTR, P), compute_PCA_projection(DTE, P), f"PCA_m_{m}"
@@ -57,14 +60,13 @@ def compute_Sw(D: numpy.ndarray, L: numpy.ndarray, mu_cn: numpy.ndarray):
 
 
 def load_preprocess_gaussianize(int):
-    print("Gaussianization...")
     filename_DTR = "gaussianized/gauss_DTR" + str(int) + ".npy"
     filename_DTE = "gaussianized/gauss_DTE" + str(int) + ".npy"
     DTR = numpy.load(filename_DTR)
     DTE = numpy.load(filename_DTE)
     return DTR, DTE, "Gaussianization"
 
-def preprocess_gaussianization(DTR: numpy.ndarray, DTE: numpy.ndarray, i):
+def preprocess_gaussianization(DTR: numpy.ndarray, DTE: numpy.ndarray):
     gauss_DTR = numpy.zeros(DTR.shape)
     
    
@@ -81,14 +83,10 @@ def preprocess_gaussianization(DTR: numpy.ndarray, DTE: numpy.ndarray, i):
                     rank += 1
             uniform = (rank + 1) /(DTR.shape[1] + 2)
             gauss_DTE[f][idx] = scipy.stats.norm.ppf(uniform)
-    filename_DTR = "gaussianized/gauss_DTR" + str(i) + ".npy"
-    filename_DTE = "gaussianized/gauss_DTE" + str(i) + ".npy"
-    numpy.save(filename_DTR, gauss_DTR)
-    numpy.save(filename_DTE, gauss_DTE)
-    return gauss_DTR, gauss_DTE
+    
+    return gauss_DTR, gauss_DTE,"Gaussianization"
     
 def preprocess_Z_score(DTR, DTE):
-    print("Z-Scoring...")
     mu = compute_mean(DTR)
     std = compute_std(DTR)
     return (DTR - mu) / std, (DTE - mu) / std, "Z-Score"

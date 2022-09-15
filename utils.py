@@ -1,7 +1,8 @@
 import numpy
 from application_parameters import *
+
 def vcol(row_array: numpy.ndarray):
-    if row_array.shape[0] == 1:
+    if len(row_array.shape) != 1:
         return row_array.reshape((row_array.shape[1],1))
     return row_array.reshape((row_array.shape[0],1))
               
@@ -26,3 +27,20 @@ def compute_classes_mean(D:numpy.ndarray, L: numpy.ndarray) -> numpy.ndarray:
     for i in range(n_classes):
         classes_mean[:,i:i+1] = compute_mean(D[:, L == i])
     return classes_mean
+
+def load(fname):
+    DList = []
+    labelsList = []
+    with open(fname) as f:
+        for line in f:
+            try:
+                attrs = line.split(',')[0:12]
+                attrs = vcol(numpy.array([float(i) for i in attrs]))
+                label = line.split(',')[-1].strip()
+                DList.append(attrs)
+                labelsList.append(label)
+            except:
+                pass
+    return numpy.hstack(DList), numpy.array(labelsList, dtype=numpy.int32)
+    
+
