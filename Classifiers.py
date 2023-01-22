@@ -45,6 +45,7 @@ def LogisticRegression(DTR: numpy.ndarray, LTR:numpy.ndarray, DTE: numpy.ndarray
     if verbose:
         print("--------Logistic Regression Model--------")
         print(f"Lambda =  {_lambda}")
+    
     obj = LR_obj_wrap(DTR,LTR,_lambda, prior)
     (x,f,d) = scipy.optimize.fmin_l_bfgs_b(obj,numpy.zeros((DTR.shape[0]+1)), approx_grad = True, factr=1.0)
     w_opt =  vcol(x[0:-1])
